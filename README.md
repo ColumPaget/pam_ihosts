@@ -11,6 +11,7 @@ Firstly, you should be aware that changing your PAM configuration could result i
 
 This PAM module is free software under the Gnu Public Licence version 3,  and comes with no express or implied warranties or guarentees of anything. 
 
+*By default pam_ihosts.so denies login. Options must be supplied to specify the ip-addresss, mac-address, regions or country-codes of those hosts that are allowed to login*.
 
 
 # INSTALL
@@ -34,6 +35,8 @@ pam_ihosts.so is configured by adding a line to the appropriate file in /etc/pam
 auth    required  pam_ihosts.so user=root file=/etc/10k-common-passwords.txt
 ```
 This specifies that, for user root, we should check for ihosts in the file /etc/10k-common-passwords.txt, which is a cleartext list of commonly used passwords.
+
+*The config only relates to the specified user.* Other users will log in as normal. To make a configuration relate to all users, use the `'*'` wildcard.
 
 Configuration options are:
 

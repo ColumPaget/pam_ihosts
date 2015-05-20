@@ -46,25 +46,25 @@ Record events via syslog messages
 **script=[path]**  
 Run script in the event of a DENY. Arguments passed to the script will be 'User', 'IP', 'Mac Address' and 'Region'. 'Region' will be in the format `<registrar>:<countrycode>`, so for example, `ripencc:GB`.
 
-**allow-ip=[ip]**
-**allow-ips=[ip]**
+**allow-ip=[ip]**  
+**allow-ips=[ip]**  
 A comma-separated list of fnmatch patterns that match IP addresses allowed to log in.
 
-**allow-mac=[mac]**
-**allow-macs=[mac]**
+**allow-mac=[mac]**  
+**allow-macs=[mac]**  
 A comma-separated list of fnmatch patterns that match MAC addresses allowed to log in.
 
-**allow-dev=[dev]**
-**allow-devs=[dev]**
-**allow-device=[dev]**
-**allow-devices=[dev]**
+**allow-dev=[dev]**  
+**allow-devs=[dev]**  
+**allow-device=[dev]**  
+**allow-devices=[dev]**  
 A comma-separated list of fnmatch patterns that match network device names that the connection is coming to. This is the network adapter on your machine that is *receiving* the connection from the remote host.
 
-**allow-region=[region]**
-**allow-regions=[region]**
+**allow-region=[region]**  
+**allow-regions=[region]**  
 A comma-separated list of fnmatch patterns that match region strings looked up in IP registrar files. Region strings are in the format `<registrar>:<countrycode>`. This option requires you to supply the paths to the region files with the 'region-files' option. For more details see 'REGIONS' below.
 
-**region-files=[path]**
+**region-files=[path]**  
 A comma-separated list of paths to files containing IP registrar assignments. For more details see 'REGIONS' below.
 
 

@@ -79,7 +79,7 @@ afrinic|LR|ipv4|41.57.80.0|4096|20120118|allocated
 afrinic|KE|ipv4|41.57.96.0|4096|20120309|allocated
 */
 
-char *RegionFileLookup(char *RetStr, const char *Path, const char *IPStr)
+char *RegionFileLookup(char *RetStr, const char *pam_service, const char *Path, const char *IPStr)
 {
 FILE *F;
 char *Tempstr=NULL, *Registrar=NULL, *Country=NULL, *Type=NULL, *Subnet=NULL, *Token=NULL;
@@ -113,6 +113,13 @@ if (F)
 	}
 	fclose(F);
 }
+else
+{
+	openlog(pam_service,0,LOG_AUTH);
+	syslog(LOG_ERR, "pam_ihosts ERROR: Failed to open region file %s", Path);
+	closelog();
+}
+
 
 Destroy(Registrar);
 Destroy(Tempstr);
@@ -125,7 +132,7 @@ return(RetStr);
 }
 
 
-char *RegionLookup(char *RetStr, const char *IP, const char *RegionFileList)
+char *RegionLookup(char *RetStr, const char *pam_service, const char *IP, const char *RegionFileList)
 {
 char *Path=NULL, *ptr;
 
@@ -140,7 +147,7 @@ if (strncmp(IP,"172.31.",7)==0) return(CopyStr(RetStr,"local"));
 ptr=GetTok(RegionFileList,',',&Path);
 while (ptr)
 {
-	RetStr=RegionFileLookup(RetStr, Path, IP);
+	RetStr=RegionFileLookup(RetStr, pam_service, Path, IP);
 	if (StrLen(RetStr)) break;
 
 ptr=GetTok(ptr,',',&Path);
@@ -183,7 +190,7 @@ return(Settings);
 }
 
 
-int GetHostARP(const char *IP, char **Device, char **MAC)
+int GetHostARP(const char *pam_service, const char *IP, char **Device, char **MAC)
 {
 char *Tempstr=NULL, *Token=NULL;
 int result=FALSE;
@@ -225,6 +232,12 @@ if (F)
 	}
 fclose(F);
 }
+else
+{
+	openlog(pam_service,0,LOG_AUTH);
+	syslog(LOG_ERR, "pam_ihosts ERROR: Failed to open /proc/net/arp. Mac and Device checking disabled.");
+	closelog();
+}
 
 Destroy(Tempstr);
 Destroy(Token);
@@ -234,13 +247,13 @@ return(result);
 
 
 
-int ConsiderHost(TSettings *Settings, const char *pam_user, const char *pam_rhost)
+int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost)
 {
 char *MAC=NULL, *Device=NULL, *Region=NULL;
 int PamResult=PAM_PERM_DENIED;
 
-	GetHostARP(pam_rhost, &Device, &MAC);
-	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_rhost, Settings->RegionFiles);
+	GetHostARP(pam_service, pam_rhost, &Device, &MAC);
+	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_service, pam_rhost, Settings->RegionFiles);
 	
 	if (StrLen(Settings->User) && (! ItemMatches(pam_user, Settings->User))) PamResult=PAM_IGNORE;
 	else if (StrLen(Settings->AllowedIPs) && ItemMatches(pam_rhost, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
@@ -250,9 +263,9 @@ int PamResult=PAM_PERM_DENIED;
 
 	if (Settings->Flags & FLAG_SYSLOG)
 	{
-			openlog("pam_ihosts",0,LOG_AUTH);
-			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "DENY: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
-			else syslog(LOG_NOTICE, "ALLOW: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
+			openlog(pam_service,0,LOG_AUTH);
+			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "pam_ihosts DENY: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
+			else syslog(LOG_NOTICE, "pam_ihosts ALLOW: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
 			closelog();
 	}
 
@@ -277,20 +290,39 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
 	//These are defined as 'const char' because they passwd to us from the parent
 	//library. When we called pam_get_<whatever> the pam library passes pointers
 	//to strings in it's own code. Thus we must not change or free them
-	const char *pam_user = NULL, *pam_rhost=NULL;
+	const char *pam_user = NULL, *pam_rhost=NULL, *pam_service=NULL;
 
+	if (pam_get_item(pamh, PAM_SERVICE, (const void **) &pam_service) != PAM_SUCCESS) 
+	{
+			openlog("pam_ihosts",0,LOG_AUTH);
+			syslog(LOG_ERR, "ERROR: Failed to get pam_service");
+			closelog();
+			return(PAM_IGNORE);
+	}
 
 	//get the user. If something goes wrong we return PAM_IGNORE. This tells
 	//pam that our module failed in some way, so ignore it. Perhaps we should
 	//return PAM_PERM_DENIED to deny login, but this runs the risk of a broken
 	//module preventing anyone from logging into the system!
-	if (pam_get_user(pamh, &pam_user, NULL) != PAM_SUCCESS) return(PAM_IGNORE);
-	if (pam_user == NULL) return(PAM_IGNORE);
-
-	if (pam_get_item(pamh, PAM_RHOST, (const void **) &pam_rhost) != PAM_SUCCESS) return(PAM_IGNORE);
-
+	if ((pam_get_user(pamh, &pam_user, NULL) != PAM_SUCCESS) || (pam_user == NULL))
+	{
+			openlog(pam_service,0,LOG_AUTH);
+			syslog(LOG_ERR, "pam_ihosts ERROR: Failed to get pam_user");
+			closelog();
+			return(PAM_IGNORE);
+	}
+	
+	
+	if (pam_get_item(pamh, PAM_RHOST, (const void **) &pam_rhost) != PAM_SUCCESS)
+	{
+			openlog(pam_service,0,LOG_AUTH);
+			syslog(LOG_ERR, "pam_ihosts ERROR: Failed to get pam_rhost");
+			closelog();
+			return(PAM_IGNORE);
+	}
+	
 	Settings=ParseSettings(argc, argv);
-	PamResult=ConsiderHost(Settings, pam_user, pam_rhost);
+	PamResult=ConsiderHost(Settings, pam_service, pam_user, pam_rhost);
 
 	Destroy(Settings);
 	Destroy(Tempstr);

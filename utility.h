@@ -25,6 +25,8 @@ void StripLeadingWhitespace(char *str);
 void StripQuotes(char *Str);
 const char *GetTok(const char *In, char Delim, char **Token);
 unsigned long StrtoIP(const char *Str);
+int IsIP4Address(const char *Str);
+char *LookupHostIP(const char *Host);
 void Destroy(void *Item);
 
 #endif

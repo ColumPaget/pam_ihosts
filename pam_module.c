@@ -250,14 +250,17 @@ return(result);
 
 int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost)
 {
-char *MAC=NULL, *Device=NULL, *Region=NULL;
+char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL;
 int PamResult=PAM_PERM_DENIED;
 
-	GetHostARP(pam_service, pam_rhost, &Device, &MAC);
-	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_service, pam_rhost, Settings->RegionFiles);
+	if (! IsIP4Address(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
+	else IP=CopyStr(IP, pam_rhost);
+
+	GetHostARP(pam_service, IP, &Device, &MAC);
+	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_service, IP, Settings->RegionFiles);
 	
 	if (StrLen(Settings->User) && (! ItemMatches(pam_user, Settings->User))) PamResult=PAM_IGNORE;
-	else if (StrLen(Settings->AllowedIPs) && ItemMatches(pam_rhost, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
+	else if (StrLen(Settings->AllowedIPs) && ItemMatches(IP, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
 	else if (StrLen(Settings->AllowedMACs) && ItemMatches(MAC, Settings->AllowedMACs)) PamResult=PAM_IGNORE;
 	else if (StrLen(Region) && StrLen(Settings->AllowedRegions) && ItemMatches(Region, Settings->AllowedRegions)) PamResult=PAM_IGNORE;
 
@@ -265,14 +268,15 @@ int PamResult=PAM_PERM_DENIED;
 	if (Settings->Flags & FLAG_SYSLOG)
 	{
 			openlog(pam_service,0,LOG_AUTH);
-			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "pam_ihosts DENY: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
-			else syslog(LOG_NOTICE, "pam_ihosts ALLOW: user=[%s] rhost=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, Device, MAC, Region);
+			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "pam_ihosts DENY: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region);
+			else syslog(LOG_NOTICE, "pam_ihosts ALLOW: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region);
 			closelog();
 	}
 
 	Destroy(Region);
 	Destroy(Device);
 	Destroy(MAC);
+	Destroy(IP);
 
  	return(PamResult);
 }

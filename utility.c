@@ -4,6 +4,8 @@
 #include "utility.h"
 #include <fnmatch.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
 
 
 //Get items from the MatchList, and use them as fnmatch patterns, returning  TRUE
@@ -242,6 +244,53 @@ unsigned long StrtoIP(const char *Str)
 struct sockaddr_in sa;
 if (inet_aton(Str,&sa.sin_addr)) return(sa.sin_addr.s_addr);
 return(0);
+}
+
+
+
+int IsIP4Address(const char *Str)
+{
+const char *ptr;
+int dot_count=0;
+int AllowDot=FALSE;
+
+if (! Str) return(FALSE);
+
+for (ptr=Str; *ptr != '\0'; ptr++)
+{
+  if (*ptr == '.')
+  {
+    if (! AllowDot) return(FALSE);
+    dot_count++;
+    AllowDot=FALSE;
+  }
+  else
+  {
+    if (! isdigit(*ptr)) return(FALSE);
+    AllowDot=TRUE;
+  }
+}
+
+if (dot_count != 3) return(FALSE);
+
+return(TRUE);
+}
+
+
+
+char *LookupHostIP(const char *Host)
+{
+struct hostent *hostdata;
+
+   hostdata=gethostbyname(Host);
+   if (!hostdata)
+   {
+     return(NULL);
+   }
+
+//inet_ntoa shouldn't need this cast to 'char *', but it emitts a warning
+//without it
+return((char *) inet_ntoa(*(struct in_addr *) *hostdata->h_addr_list));
 }
 
 

@@ -137,6 +137,7 @@ char *RegionLookup(char *RetStr, const char *pam_service, const char *IP, const 
 char *Path=NULL;
 const char *ptr;
 
+if (strncmp(IP,"127.",4)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"192.168.",8)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"10.",3)==0) return(CopyStr(RetStr,"local"));
 if (fnmatch(IP,"172.1[6-9].*")==0) return(CopyStr(RetStr,"local"));

@@ -8,6 +8,16 @@
 #include <unistd.h>
 
 
+void strlwr(char *Str)
+{
+char *ptr;
+
+if (Str)
+{
+for (ptr=Str; *ptr != '\0'; ptr++) *ptr=tolower(*ptr);
+}
+}
+
 //Get items from the MatchList, and use them as fnmatch patterns, returning  TRUE
 //if we find one that matches. However, if the match pattern starts with '!', then
 //return TRUE if the match fails
@@ -291,6 +301,71 @@ struct hostent *hostdata;
 //inet_ntoa shouldn't need this cast to 'char *', but it emitts a warning
 //without it
 return((char *) inet_ntoa(*(struct in_addr *) *hostdata->h_addr_list));
+}
+
+
+int CheckIPFile(const char *Path, const char *Rhost, const char *IP, const char *MAC, const char *Region)
+{
+FILE *f;
+char *Line=NULL;
+int result=FALSE;
+
+Line=(char *) calloc(1,256);
+f=fopen(Path,"r");
+if (f)
+{
+	while (fgets(Line,255,f))
+	{
+		StripTrailingWhitespace(Line);
+		if (strcasecmp(Line,IP)==0)
+		{
+		result=TRUE;
+		break;
+		}	
+		
+		if (strcasecmp(Line,MAC)==0)
+		{
+		result=TRUE;
+		break;
+		}
+			
+		if (strcasecmp(Line,Rhost)==0)
+		{
+		result=TRUE;
+		break;
+		}
+	}
+fclose(f);
+}
+
+Destroy(Line);
+
+return(result);
+}
+
+
+
+int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region)
+{
+char *Path=NULL, *ptr;
+int result=FALSE;
+
+ptr=GetTok(FileList,',',&Path);
+while (ptr)
+{
+StripLeadingWhitespace(Path);
+StripTrailingWhitespace(Path);
+result=CheckIPFile(Path,Rhost,IP,MAC,Region);
+if (result) 
+{
+syslog(LOG_INFO,"pam_ihosts: item found in %s",Path);
+break;
+}
+ptr=GetTok(ptr,',',&Path);
+}
+
+Destroy(Path);
+return(result);
 }
 
 

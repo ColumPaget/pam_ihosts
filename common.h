@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
+#include <syslog.h>
 
 #define VERSION "1.0"
 #define FALSE 0

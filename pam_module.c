@@ -6,6 +6,8 @@
 //Define which PAM interfaces we provide. In this case we are
 //only going to provide an account interface, i.e. one 
 //that decides if a login in allowed or not, *after* authentication
+//Many programs will interpret a 'DENY' result here to mean that the 
+//account has expired, so expect to see that in your logs
 #define PAM_SM_ACCOUNT
 
 // We do not supply these
@@ -33,6 +35,8 @@ char *AllowedMACs;
 char *AllowedIPs;
 char *AllowedRegions;
 char *AllowedDevices;
+char *BlackLists;
+char *WhiteLists;
 char *RegionFiles;
 char *Script;
 } TSettings;
@@ -47,6 +51,10 @@ Destroy(Settings->User);
 Destroy(Settings->AllowedMACs);
 Destroy(Settings->AllowedIPs);
 Destroy(Settings->AllowedRegions);
+Destroy(Settings->AllowedDevices);
+Destroy(Settings->BlackLists);
+Destroy(Settings->WhiteLists);
+Destroy(Settings->RegionFiles);
 Destroy(Settings->Script);
 free(Settings);
 } 
@@ -162,6 +170,10 @@ return(RetStr);
 
 
 
+
+
+
+
 TSettings *ParseSettings(int argc, const char *argv[])
 {
 TSettings *Settings;
@@ -174,20 +186,23 @@ int i;
 		ptr=argv[i];
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=CopyStr(Settings->User, ptr+5);
-		else if (strncmp(ptr,"allow-dev=",10)==0) Settings->AllowedDevices=CopyStr(Settings->AllowedDevices, ptr+10);
-		else if (strncmp(ptr,"allow-device=",13)==0) Settings->AllowedDevices=CopyStr(Settings->AllowedDevices, ptr+13);
-		else if (strncmp(ptr,"allow-mac=",10)==0) Settings->AllowedMACs=CopyStr(Settings->AllowedMACs, ptr+10);
-		else if (strncmp(ptr,"allow-ip=",9)==0) Settings->AllowedIPs=CopyStr(Settings->AllowedIPs, ptr+9);
-		else if (strncmp(ptr,"allow-region=",13)==0) Settings->AllowedRegions=CopyStr(Settings->AllowedRegions, ptr+13);
-		else if (strncmp(ptr,"allow-devs=",10)==0) Settings->AllowedDevices=CopyStr(Settings->AllowedDevices, ptr+11);
-		else if (strncmp(ptr,"allow-devices=",13)==0) Settings->AllowedDevices=CopyStr(Settings->AllowedDevices, ptr+14);
-		else if (strncmp(ptr,"allow-macs=",11)==0) Settings->AllowedMACs=CopyStr(Settings->AllowedMACs, ptr+11);
-		else if (strncmp(ptr,"allow-ips=",10)==0) Settings->AllowedIPs=CopyStr(Settings->AllowedIPs, ptr+10);
-		else if (strncmp(ptr,"allow-regions=",14)==0) Settings->AllowedRegions=CopyStr(Settings->AllowedRegions, ptr+14);
-		else if (strncmp(ptr,"region-files=",13)==0) Settings->RegionFiles=CopyStr(Settings->RegionFiles, ptr+13);
+		else if (strncmp(ptr,"allow-dev=",10)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+10,",",NULL);
+		else if (strncmp(ptr,"allow-device=",13)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+13,",",NULL);
+		else if (strncmp(ptr,"allow-mac=",10)==0) Settings->AllowedMACs=MCatStr(Settings->AllowedMACs, ptr+10,",",NULL);
+		else if (strncmp(ptr,"allow-ip=",9)==0) Settings->AllowedIPs=MCatStr(Settings->AllowedIPs, ptr+9,",",NULL);
+		else if (strncmp(ptr,"allow-region=",13)==0) Settings->AllowedRegions=MCatStr(Settings->AllowedRegions, ptr+13,",",NULL);
+		else if (strncmp(ptr,"allow-devs=",10)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+11,",",NULL);
+		else if (strncmp(ptr,"allow-devices=",13)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+14,",",NULL);
+		else if (strncmp(ptr,"allow-macs=",11)==0) Settings->AllowedMACs=MCatStr(Settings->AllowedMACs, ptr+11,",",NULL);
+		else if (strncmp(ptr,"allow-ips=",10)==0) Settings->AllowedIPs=MCatStr(Settings->AllowedIPs, ptr+10,",",NULL);
+		else if (strncmp(ptr,"allow-regions=",14)==0) Settings->AllowedRegions=MCatStr(Settings->AllowedRegions, ptr+14,",",NULL);
+		else if (strncmp(ptr,"region-files=",13)==0) Settings->RegionFiles=MCatStr(Settings->RegionFiles, ptr+13,",",NULL);
+		else if (strncmp(ptr,"blacklist=",10)==0) Settings->BlackLists=MCatStr(Settings->BlackLists, ptr+10,",",NULL);
+		else if (strncmp(ptr,"whitelist=",10)==0) Settings->WhiteLists=MCatStr(Settings->WhiteLists, ptr+10,",",NULL);
 		else if (strncmp(ptr,"script=",7)==0) Settings->Script=MCopyStr(Settings->Script, ptr+7, NULL);
 	}
 
+	strlwr(Settings->AllowedMACs);
 return(Settings);
 }
 
@@ -222,6 +237,7 @@ if (F)
 
 			while (isspace(*ptr)) ptr++;
 			ptr=GetTok(ptr,' ',MAC);
+			strlwr(*MAC);
 
 			while (isspace(*ptr)) ptr++;
 			ptr=GetTok(ptr,' ',&Token);
@@ -248,6 +264,26 @@ return(result);
 }
 
 
+int CheckHostPermissions(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost, const char *IP, const char *Device, const char *MAC, const char *Region)
+{
+int PamResult=PAM_PERM_DENIED;
+
+	//Wrong user, so return
+	if (StrLen(Settings->User) && (! ItemMatches(pam_user, Settings->User))) return(PAM_IGNORE);
+
+	//Any of these can be overridden by 'deny' rules or blocklists
+	if (StrLen(Settings->AllowedIPs) && ItemMatches(IP, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
+	else if (StrLen(Settings->AllowedMACs) && ItemMatches(MAC, Settings->AllowedMACs)) PamResult=PAM_IGNORE;
+	else if (StrLen(Region) && StrLen(Settings->AllowedRegions) && ItemMatches(Region, Settings->AllowedRegions)) PamResult=PAM_IGNORE;
+
+	if (StrLen(Settings->WhiteLists) && CheckIPLists(Settings->WhiteLists, pam_rhost, IP, MAC, Region)) PamResult=PAM_IGNORE;
+	if (StrLen(Settings->BlackLists) && CheckIPLists(Settings->BlackLists, pam_rhost, IP, MAC, Region)) PamResult=PAM_PERM_DENIED;
+
+	return(PamResult);
+}
+
+
+
 
 int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost)
 {
@@ -259,12 +295,8 @@ int PamResult=PAM_PERM_DENIED;
 
 	GetHostARP(pam_service, IP, &Device, &MAC);
 	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_service, IP, Settings->RegionFiles);
-	
-	if (StrLen(Settings->User) && (! ItemMatches(pam_user, Settings->User))) PamResult=PAM_IGNORE;
-	else if (StrLen(Settings->AllowedIPs) && ItemMatches(IP, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
-	else if (StrLen(Settings->AllowedMACs) && ItemMatches(MAC, Settings->AllowedMACs)) PamResult=PAM_IGNORE;
-	else if (StrLen(Region) && StrLen(Settings->AllowedRegions) && ItemMatches(Region, Settings->AllowedRegions)) PamResult=PAM_IGNORE;
 
+	PamResult=CheckHostPermissions(Settings, pam_service, pam_user, pam_rhost, IP, Device, MAC, Region);
 
 	if (Settings->Flags & FLAG_SYSLOG)
 	{

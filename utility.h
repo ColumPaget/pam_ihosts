@@ -15,6 +15,7 @@
 int ItemMatches(const char *Item, const char *MatchList);
 int ItemListMatches(const char *ItemList, const char *MatchList);
 
+void strlwr(char *Str);
 char *VCatStr(char *Dest, const char *Str1,  va_list args);
 char *MCatStr(char *Dest, const char *Str1,  ...);
 char *MCopyStr(char *Dest, const char *Str1,  ...);
@@ -27,6 +28,7 @@ const char *GetTok(const char *In, char Delim, char **Token);
 unsigned long StrtoIP(const char *Str);
 int IsIP4Address(const char *Str);
 char *LookupHostIP(const char *Host);
+int CheckIPLists(const char *Path, const char *Rhost, const char *IP, const char *MAC, const char *Region);
 void Destroy(void *Item);
 
 #endif

@@ -65,6 +65,17 @@ A comma-separated list of fnmatch patterns that match region strings looked up i
 \fIregion-files=[path]\fP
 A comma-separated list of paths to files containing IP registrar assignments. For more details see 'REGIONS' below.
 
+.TP
+.B
+\fIblacklist=[path]\fP
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBblacklisted\fP (denied login). One item per line.
+
+.TP
+.B
+\fIwhitelist=[path]\fP
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBwhitelisted\fP (allowed login). One item per line.
+
+
 .SH REGION FILES
 
 .P
@@ -75,6 +86,12 @@ http://ftp.ripe.net/ripe/stats/delegated-ripencc-latest             # Europe, Ru
 http://ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest   # North America
 http://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-latest   # Africa
 http://ftp.apnic.net/stats/apnic/delegated-apnic-latest             # Asia Pacific
+
+.SH BLACKLISTS/WHITELISTS
+
+.P
+Blacklist/whitelist files contain IP addresses, hostnames, or MAC addresses that are either denied or allowed login. One item per line. All three types of item can be present in the same file. Blacklist files are checked first, and then can be overridden with whitelist files. As pam_ihosts denies login by default, so a whitelist file can be used on its own. To use only a blacklist file, one would have to specify 'allow-ip=*' and then specify a blacklist file, which would have the effect of allowing everything except those things in the blacklist file.
+
 .SH EXAMPLES
 
 .P

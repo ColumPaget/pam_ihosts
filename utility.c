@@ -28,7 +28,7 @@ char *Match=NULL;
 int result=FALSE;
 
 if (StrLen(Item) ==0) return(FALSE);
-ptr=GetTok(MatchList, ',', &Match);
+ptr=GetTok(MatchList, ",", &Match);
 while (ptr)
 {
   mptr=Match;
@@ -46,7 +46,7 @@ while (ptr)
     result=TRUE;
     break;
   }
-  ptr=GetTok(ptr, ',', &Match);
+  ptr=GetTok(ptr, ",", &Match);
 }
 
 Destroy(Match);
@@ -63,7 +63,7 @@ char *Item=NULL;
 const char *ptr;
 int result=FALSE;
 
-ptr=GetTok(ItemList, ' ', &Item);
+ptr=GetTok(ItemList, " ", &Item);
 while (ptr)
 {
   if (ItemMatches(Item, MatchList))
@@ -71,7 +71,7 @@ while (ptr)
     result=TRUE;
     break;
   }
-  ptr=GetTok(ptr, ' ', &Item);
+  ptr=GetTok(ptr, " ", &Item);
 }
 
 Destroy(Item);
@@ -208,7 +208,7 @@ if ((*ptr=='"') || (*ptr=='\''))
 
 
 //I don't trust strtok, it's not reentrant, and this handles quotes
-const char *GetTok(const char *In, char Delim, char **Token)
+const char *GetTok(const char *In, const char *Delims, char **Token)
 {
 char quot='\0';
 const char *ptr;
@@ -227,7 +227,7 @@ for (ptr=In; *ptr != '\0'; ptr++)
 		if (*ptr==quot) quot='\0';
 	}
 	else if ((*ptr=='"') || (*ptr=='\'')) quot=*ptr;
-	else if (*ptr==Delim) break;
+	else if (strchr(Delims, *ptr)) break;
 	else 
 	{
 		if (*ptr=='\\') ptr++;
@@ -258,32 +258,71 @@ return(0);
 
 
 
-int IsIP4Address(const char *Str)
+//this handles both IP4 and IP6 addresses. It counts dots or colons and 
+//checks for hex chars
+int IsIPAddress(const char *Str)
 {
 const char *ptr;
-int dot_count=0;
-int AllowDot=FALSE;
+int dot_count=0, colon_count=0;
+int AllowDot=FALSE, IP6=FALSE;
 
 if (! Str) return(FALSE);
 
 for (ptr=Str; *ptr != '\0'; ptr++)
 {
-  if (*ptr == '.')
-  {
+	switch (*ptr)
+	{
+  case '.':
     if (! AllowDot) return(FALSE);
+    if (IP6) return(FALSE);
     dot_count++;
     AllowDot=FALSE;
-  }
-  else
-  {
-    if (! isdigit(*ptr)) return(FALSE);
-    AllowDot=TRUE;
-  }
+	break;
+	
+	case ':':
+    colon_count++;
+    IP6=TRUE;
+	break;
+
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+	case 'A':
+	case 'B':
+	case 'C':
+	case 'D':
+	case 'E':
+	case 'F':
+	if (dot_count > 0) return(FALSE);
+	break;
+
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+	break;
+
+	default:
+    return(FALSE);
+	break;
+	}
 }
 
-if (dot_count != 3) return(FALSE);
+if ((dot_count > 0) && (colon_count > 0)) return(FALSE);
 
-return(TRUE);
+if (dot_count == 3) return(TRUE);
+if (colon_count > 1) return(TRUE);
+
+return(FALSE);
 }
 
 
@@ -350,7 +389,7 @@ int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const 
 char *Path=NULL, *ptr;
 int result=FALSE;
 
-ptr=GetTok(FileList,',',&Path);
+ptr=GetTok(FileList,",",&Path);
 while (ptr)
 {
 StripLeadingWhitespace(Path);
@@ -361,7 +400,7 @@ if (result)
 syslog(LOG_INFO,"pam_ihosts: item found in %s",Path);
 break;
 }
-ptr=GetTok(ptr,',',&Path);
+ptr=GetTok(ptr,",",&Path);
 }
 
 Destroy(Path);

@@ -87,6 +87,48 @@ afrinic|LR|ipv4|41.57.80.0|4096|20120118|allocated
 afrinic|KE|ipv4|41.57.96.0|4096|20120309|allocated
 */
 
+
+
+int IP6Compare(const char *IP, const char *Subnet, int NetMask)
+{
+const char *iptr, *sptr;
+char *iOctet=NULL, *sOctet=NULL;
+int val;
+
+iptr=GetTok(IP,":.",&iOctet);
+sptr=GetTok(Subnet,":.",&sOctet);
+while (iptr && sptr && (NetMask > 0))
+{
+	if (NetMask > 7)
+	{
+		if (strtol(iOctet,NULL,16) != strtol(sOctet,NULL,16)) return(FALSE);
+	}
+	else
+	{
+		switch (NetMask)
+		{
+			case 1: val=1; break;
+			case 2: val=3; break;
+			case 3: val=7; break;
+			case 4: val=15; break;
+			case 5: val=31; break;
+			case 6: val=63; break;
+			case 7: val=127; break;
+		}
+		
+		if ((strtol(iOctet,NULL,16) & val) != (strtol(sOctet,NULL,16) & val)) return(FALSE);
+	}
+	NetMask-=16;
+	iptr=GetTok(iptr,":.",&iOctet);
+	sptr=GetTok(sptr,":.",&sOctet);
+}
+
+Destroy(iOctet);
+Destroy(sOctet);
+return(TRUE);
+}
+
+
 char *RegionFileLookup(char *RetStr, const char *pam_service, const char *Path, const char *IPStr)
 {
 FILE *F;
@@ -102,20 +144,34 @@ if (F)
 {
 	while (fgets(Tempstr,255,F))
 	{
-		ptr=GetTok(Tempstr,'|',&Registrar);
-		ptr=GetTok(ptr,'|',&Country);
-		ptr=GetTok(ptr,'|',&Type);
+		ptr=GetTok(Tempstr,"|",&Registrar);
+		ptr=GetTok(ptr,"|",&Country);
+		ptr=GetTok(ptr,"|",&Type);
+		ptr=GetTok(ptr,"|",&Subnet);
+
+		if (*Subnet != '*')
+		{
 		if (strcmp(Type,"ipv4")==0)
 		{
-		ptr=GetTok(ptr,'|',&Subnet);
-		ptr=GetTok(ptr,'|',&Token);
-		val=atoi(Token);
-		//'val' is number of assigned IPs. Netmask is this -1
-		Mask=htonl(~(val-1));
-		if ((IP & Mask) == StrtoIP(Subnet))
+			ptr=GetTok(ptr,"|",&Token);
+			val=atoi(Token);
+			//'val' is number of assigned IPs. Netmask is this -1
+			Mask=htonl(~(val-1));
+
+			if ((IP & Mask) == StrtoIP(Subnet))
+			{
+				RetStr=MCopyStr(RetStr,Registrar,":",Country,NULL);
+				break;
+			}
+		}
+		else if (strcmp(Type,"ipv6")==0) 
 		{
-			RetStr=MCopyStr(RetStr,Registrar,":",Country,NULL);
-			break;
+			ptr=GetTok(ptr,"|",&Token);
+			if (IP6Compare(IPStr, Subnet, atoi(Token)))
+			{
+				RetStr=MCopyStr(RetStr,Registrar,":",Country,NULL);
+				break;
+			}
 		}
 		}
 	}
@@ -154,13 +210,13 @@ if (strncmp(IP,"172.30.",7)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"172.31.",7)==0) return(CopyStr(RetStr,"local"));
 
 
-ptr=GetTok(RegionFileList,',',&Path);
+ptr=GetTok(RegionFileList,",",&Path);
 while (ptr)
 {
 	RetStr=RegionFileLookup(RetStr, pam_service, Path, IP);
 	if (StrLen(RetStr)) break;
 
-ptr=GetTok(ptr,',',&Path);
+ptr=GetTok(ptr,",",&Path);
 }
 
 Destroy(Path);
@@ -226,24 +282,24 @@ if (F)
 	while (fgets(Tempstr,255,F))
 	{
 		StripTrailingWhitespace(Tempstr);
-		ptr=GetTok(Tempstr,' ',&Token);
+		ptr=GetTok(Tempstr," ",&Token);
 		if (strcmp(Token,IP)==0)
 		{
 			while (isspace(*ptr)) ptr++;
-			ptr=GetTok(ptr,' ',&Token);
+			ptr=GetTok(ptr," ",&Token);
 
 			while (isspace(*ptr)) ptr++;
-			ptr=GetTok(ptr,' ',&Token);
+			ptr=GetTok(ptr," ",&Token);
 
 			while (isspace(*ptr)) ptr++;
-			ptr=GetTok(ptr,' ',MAC);
+			ptr=GetTok(ptr," ",MAC);
 			strlwr(*MAC);
 
 			while (isspace(*ptr)) ptr++;
-			ptr=GetTok(ptr,' ',&Token);
+			ptr=GetTok(ptr," ",&Token);
 
 			while (isspace(*ptr)) ptr++;
-			ptr=GetTok(ptr,' ',Device);
+			ptr=GetTok(ptr," ",Device);
 
 			result=TRUE;
 		}
@@ -290,7 +346,7 @@ int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_u
 char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL;
 int PamResult=PAM_PERM_DENIED;
 
-	if (! IsIP4Address(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
+	if (! IsIPAddress(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
 	else IP=CopyStr(IP, pam_rhost);
 
 	GetHostARP(pam_service, IP, &Device, &MAC);

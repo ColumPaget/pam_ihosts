@@ -24,7 +24,7 @@ char *CopyStr(char *Dest, const char *Src);
 void StripTrailingWhitespace(char *str);
 void StripLeadingWhitespace(char *str);
 void StripQuotes(char *Str);
-const char *GetTok(const char *In, char Delim, char **Token);
+const char *GetTok(const char *In, const char *Delim, char **Token);
 unsigned long StrtoIP(const char *Str);
 int IsIP4Address(const char *Str);
 char *LookupHostIP(const char *Host);

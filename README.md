@@ -2,7 +2,7 @@
 
 This is a PAM (Pluggable Authentication Modules) that only allows login from certain hosts, either based on mac-address, ip-address, or their region looked as up in internet registrar stats files. pam_ihosts is not an authentication module, it's an account module.This means that it comes into play only after a user has already authenticated, and provides extra checks as to whether an authenticated user should be alowed to log in. This allows fine-grained control of which hosts a user is allowed to login from, with external logins being controlled by region and ip, and internal networks being controlled by mac-address or ip, the former allowing control even in DHCP environments.
 
-Currently only IPv4 is supported.
+As of version 1.2 both IP4 and IP6 are supported.
 
 
 #BIG FAT WARNING

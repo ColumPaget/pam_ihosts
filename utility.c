@@ -384,7 +384,7 @@ return(result);
 
 
 
-int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region)
+int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region, char **MatchingList)
 {
 char *Path=NULL, *ptr;
 int result=FALSE;
@@ -397,8 +397,8 @@ StripTrailingWhitespace(Path);
 result=CheckIPFile(Path,Rhost,IP,MAC,Region);
 if (result) 
 {
-syslog(LOG_INFO,"pam_ihosts: item found in %s",Path);
-break;
+	*MatchingList=CopyStr(*MatchingList, Path);
+	break;
 }
 ptr=GetTok(ptr,",",&Path);
 }

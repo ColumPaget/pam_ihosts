@@ -62,18 +62,6 @@ free(Settings);
 
 
 
-void RunScript(TSettings *Settings, const char *Error, const char *FoundFiles)
-{
-char *Tempstr=NULL;
-
-if (! StrLen(Settings->Script)) return;
-
-//Tempstr=MCopyStr(Tempstr,Settings->Script," '",Error,"' '",FoundFiles,"' '",Settings->PamUser,"' '",Settings->PamHost, "'", NULL);
-system(Tempstr);	
-
-Destroy(Tempstr);
-}
-
 
 
 /*
@@ -226,20 +214,15 @@ return(RetStr);
 
 
 
-
-
-
-
-TSettings *ParseSettings(int argc, const char *argv[])
+void ParseSettingLine(TSettings *Settings, const char *Line)
 {
-TSettings *Settings;
 const char *ptr;
-int i;
 
-	Settings=(TSettings *) calloc(1,sizeof(TSettings));
-	for (i=0; i < argc; i++)
-	{
-		ptr=argv[i];
+		if (! StrLen(Line)) return;
+		ptr=Line;
+
+		syslog(LOG_INFO, "pam-ihosts: %s",Line);
+
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=CopyStr(Settings->User, ptr+5);
 		else if (strncmp(ptr,"allow-dev=",10)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+10,",",NULL);
@@ -256,6 +239,48 @@ int i;
 		else if (strncmp(ptr,"blacklist=",10)==0) Settings->BlackLists=MCatStr(Settings->BlackLists, ptr+10,",",NULL);
 		else if (strncmp(ptr,"whitelist=",10)==0) Settings->WhiteLists=MCatStr(Settings->WhiteLists, ptr+10,",",NULL);
 		else if (strncmp(ptr,"script=",7)==0) Settings->Script=MCopyStr(Settings->Script, ptr+7, NULL);
+}
+
+
+void LoadConfigFile(TSettings *Settings, const char *pam_service, const char *Path)
+{
+char *Tempstr=NULL;
+FILE *F;
+
+Tempstr=realloc(Tempstr, 1025);
+F=fopen(Path,"r");
+if (F)
+{
+	while (fgets(Tempstr,1024,F))
+	{
+		StripTrailingWhitespace(Tempstr);
+		ParseSettingLine(Settings, Tempstr);
+	}
+	fclose(F);
+}
+else
+{
+	openlog(pam_service,0,LOG_AUTH);
+	syslog(LOG_ERR, "pam_ihosts ERROR: Failed to open config file %s",Path);
+	closelog();
+}
+
+Destroy(Tempstr);
+}
+
+
+TSettings *ParseSettings(int argc, const char *argv[], const char *pam_service)
+{
+TSettings *Settings;
+const char *ptr;
+int i;
+
+	Settings=(TSettings *) calloc(1,sizeof(TSettings));
+	for (i=0; i < argc; i++)
+	{
+		ptr=argv[i];
+		if (strncmp(ptr,"conf-file=",10)==0) LoadConfigFile(Settings,pam_service, ptr+10);
+		else ParseSettingLine(Settings, argv[i]);
 	}
 
 	strlwr(Settings->AllowedMACs);
@@ -320,7 +345,7 @@ return(result);
 }
 
 
-int CheckHostPermissions(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost, const char *IP, const char *Device, const char *MAC, const char *Region)
+int CheckHostPermissions(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost, const char *IP, const char *Device, const char *MAC, const char *Region, char **Lists)
 {
 int PamResult=PAM_PERM_DENIED;
 
@@ -332,18 +357,29 @@ int PamResult=PAM_PERM_DENIED;
 	else if (StrLen(Settings->AllowedMACs) && ItemMatches(MAC, Settings->AllowedMACs)) PamResult=PAM_IGNORE;
 	else if (StrLen(Region) && StrLen(Settings->AllowedRegions) && ItemMatches(Region, Settings->AllowedRegions)) PamResult=PAM_IGNORE;
 
-	if (StrLen(Settings->WhiteLists) && CheckIPLists(Settings->WhiteLists, pam_rhost, IP, MAC, Region)) PamResult=PAM_IGNORE;
-	if (StrLen(Settings->BlackLists) && CheckIPLists(Settings->BlackLists, pam_rhost, IP, MAC, Region)) PamResult=PAM_PERM_DENIED;
+	if (StrLen(Settings->WhiteLists) && CheckIPLists(Settings->WhiteLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_IGNORE;
+	if (StrLen(Settings->BlackLists) && CheckIPLists(Settings->BlackLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_PERM_DENIED;
 
 	return(PamResult);
 }
 
 
+void RunScript(TSettings *Settings, const char *Error, const char *Region, const char *PamUser, const char *PamHost)
+{
+char *Tempstr=NULL;
+
+if (! StrLen(Settings->Script)) return;
+Tempstr=MCopyStr(Tempstr,Settings->Script," '",Error,"' '",Region,"' '",PamUser,"' '",PamHost, "'", NULL);
+system(Tempstr);
+
+Destroy(Tempstr);
+}
+
 
 
 int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost)
 {
-char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL;
+char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL, *Lists=NULL;
 int PamResult=PAM_PERM_DENIED;
 
 	if (! IsIPAddress(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
@@ -352,15 +388,18 @@ int PamResult=PAM_PERM_DENIED;
 	GetHostARP(pam_service, IP, &Device, &MAC);
 	if (StrLen(Settings->RegionFiles)) Region=RegionLookup(Region, pam_service, IP, Settings->RegionFiles);
 
-	PamResult=CheckHostPermissions(Settings, pam_service, pam_user, pam_rhost, IP, Device, MAC, Region);
+	PamResult=CheckHostPermissions(Settings, pam_service, pam_user, pam_rhost, IP, Device, MAC, Region, &Lists);
 
 	if (Settings->Flags & FLAG_SYSLOG)
 	{
 			openlog(pam_service,0,LOG_AUTH);
-			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "pam_ihosts DENY: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region);
-			else syslog(LOG_NOTICE, "pam_ihosts ALLOW: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region);
+			if (PamResult==PAM_PERM_DENIED) syslog(LOG_NOTICE, "pam_ihosts DENY: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s] inlist=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region, Lists);
+			else syslog(LOG_NOTICE, "pam_ihosts ALLOW: user=[%s] rhost=[%s] ip=[%s] device=[%s] mac=[%s] region=[%s] lists=[%s]",pam_user, pam_rhost, IP, Device, MAC, Region, Lists);
 			closelog();
 	}
+
+	if (PamResult==PAM_PERM_DENIED) RunScript(Settings, "DENY", Region, pam_user, pam_rhost);
+	else RunScript(Settings, "ALLOW", Region, pam_user, pam_rhost);
 
 	Destroy(Region);
 	Destroy(Device);
@@ -415,7 +454,7 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
 			return(PAM_IGNORE);
 	}
 	
-	Settings=ParseSettings(argc, argv);
+	Settings=ParseSettings(argc, argv, pam_service);
 	PamResult=ConsiderHost(Settings, pam_service, pam_user, pam_rhost);
 
 	Destroy(Settings);

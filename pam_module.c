@@ -364,12 +364,12 @@ int PamResult=PAM_PERM_DENIED;
 }
 
 
-void RunScript(TSettings *Settings, const char *Error, const char *Region, const char *PamUser, const char *PamHost)
+void RunScript(TSettings *Settings, const char *Error, const char *Region, const char *Device, const char *PamUser, const char *PamHost, const char *PamMAC)
 {
 char *Tempstr=NULL;
 
 if (! StrLen(Settings->Script)) return;
-Tempstr=MCopyStr(Tempstr,Settings->Script," '",Error,"' '",Region,"' '",PamUser,"' '",PamHost, "'", NULL);
+Tempstr=MCopyStr(Tempstr,Settings->Script," '",Error,"' '",PamUser,"' '",PamHost, "' '", PamMAC,"' '", Device,"' '",Region,"'",NULL);
 system(Tempstr);
 
 Destroy(Tempstr);
@@ -381,6 +381,8 @@ int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_u
 {
 char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL, *Lists=NULL;
 int PamResult=PAM_PERM_DENIED;
+
+	Lists=CopyStr(Lists,"");
 
 	if (! IsIPAddress(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
 	else IP=CopyStr(IP, pam_rhost);
@@ -398,8 +400,8 @@ int PamResult=PAM_PERM_DENIED;
 			closelog();
 	}
 
-	if (PamResult==PAM_PERM_DENIED) RunScript(Settings, "DENY", Region, pam_user, pam_rhost);
-	else RunScript(Settings, "ALLOW", Region, pam_user, pam_rhost);
+	if (PamResult==PAM_PERM_DENIED) RunScript(Settings, "DENY", Region, Device, pam_user, pam_rhost, MAC);
+	else RunScript(Settings, "ALLOW", Region, Device, pam_user, pam_rhost, MAC);
 
 	Destroy(Region);
 	Destroy(Device);

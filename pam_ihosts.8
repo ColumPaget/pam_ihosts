@@ -29,6 +29,10 @@ PAM options that can be applied to configuration files in /etc/pam.d are as foll
 .B
 \fIuser=[user patterns]\fP
 Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+.TP
+.B
+\fIconf-file=[path]\fP
+Specifies a path to a config file that can have any pam_ihosts options in it. The config file only applies to the current line in the pam config, so you can have, say, multiple entries in PAM config that have different user= matches, and different config files.
 
 .TP
 .B
@@ -38,7 +42,7 @@ Record events via syslog messages
 .TP
 .B
 \fIscript=[path]\fP
-Run script in the event of a DENY. Arguments passed to the script will be 'User', 'IP', 'Mac Address' and 'Region'. 'Region' will be in the format '<registrar>:<countrycode>' so for example, 'ripencc:GB'.
+Run script when a connection is either denied or allowed. Arguments passed to the script will be 'ALLOW/DENY' 'User', 'IP', 'Mac Address', 'Device' and 'Region'. 'Region' will be in the format '<registrar>:<countrycode>' so for example, 'ripencc:GB'.
 
 .TP
 .B

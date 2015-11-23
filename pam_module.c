@@ -221,7 +221,6 @@ const char *ptr;
 		if (! StrLen(Line)) return;
 		ptr=Line;
 
-		syslog(LOG_INFO, "pam-ihosts: %s",Line);
 
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=CopyStr(Settings->User, ptr+5);
@@ -384,6 +383,8 @@ int PamResult=PAM_PERM_DENIED;
 
 	Lists=CopyStr(Lists,"");
 
+	syslog(LOG_NOTICE, "pam_ihosts user=[%s] rhost=[%s]",pam_user, pam_rhost);
+	if (! StrLen(pam_rhost)) return(PAM_PERM_DENIED);
 	if (! IsIPAddress(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
 	else IP=CopyStr(IP, pam_rhost);
 

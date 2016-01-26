@@ -382,6 +382,10 @@ char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL, *Lists=NULL;
 int PamResult=PAM_PERM_DENIED;
 
 	Lists=CopyStr(Lists,"");
+  MAC=CopyStr(MAC,"");
+  Device=CopyStr(Device,"");
+  Region=CopyStr(Region,"");
+  IP=CopyStr(IP,"");
 
 	syslog(LOG_NOTICE, "pam_ihosts user=[%s] rhost=[%s]",pam_user, pam_rhost);
 	if (! StrLen(pam_rhost)) return(PAM_PERM_DENIED);
@@ -406,6 +410,7 @@ int PamResult=PAM_PERM_DENIED;
 
 	Destroy(Region);
 	Destroy(Device);
+	Destroy(Lists);
 	Destroy(MAC);
 	Destroy(IP);
 

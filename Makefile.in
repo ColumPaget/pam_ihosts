@@ -1,6 +1,6 @@
 CC=@CC@
 VERSION=@VERSION@
-CFLAGS=@CFLAGS@
+CFLAGS=@CFLAGS@ -fPIC -fno-stack-protector 
 LIBS=@LIBS@
 INSTALL=@INSTALL@
 prefix=@prefix@
@@ -15,12 +15,12 @@ FLAGS=$(CFLAGS) @DEFS@
 all: pam_ihosts.so
 
 pam_ihosts.so: common.h utility.o pam_module.c 
-	gcc -fPIC -fno-stack-protector -c pam_module.c
+	gcc $(FLAGS) -c pam_module.c
 	ld -x --shared -lpam -opam_ihosts.so pam_module.o utility.o
 	strip pam_ihosts.so
 
 utility.o: utility.h utility.c
-	gcc -c utility.c
+	gcc $(FLAGS) -c utility.c
 
 install: pam_ihosts.so
 	$(INSTALL) -d $(DESTDIR)$(bindir)

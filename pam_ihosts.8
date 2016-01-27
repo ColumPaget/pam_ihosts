@@ -14,11 +14,11 @@ pam_ihosts.so [user=<username>] [syslog] [allow\-device=<device>] [allow\-mac=<m
 .SH DESCRIPTION
 
 .P
-pam\fBi\fPihosts considers a user's remote ip to prevent/allow login by users who have already provided the correct credentials. 
+pam_ihosts considers a user\(aqs remote ip to prevent/allow login by users who have already provided the correct credentials. 
 .P
-pam_ihosts.so can use the 'stats' files that regional internet registrars provide in order to look up the registrar and country that an IP is registered to, allowing a form of crude geo-location.
+pam_ihosts.so can use the "stats" files that regional internet registrars provide in order to look up the registrar and country that an IP is registered to, allowing a form of crude geo-location.
 .P
-\fbBeware\fP. pam_ihosts.so denies login by default for any user that it's specified to handle. Options must be supplied to indicate the mac-address, ip-address, country-code or region of hosts that are allowed to log in.
+\fbBeware\fP. pam_ihosts.so denies login by default for any user that it\(aqs specified to handle. Options must be supplied to indicate the mac-address, ip-address, country-code or region of hosts that are allowed to log in.
 
 
 .SH OPTIONS
@@ -28,7 +28,7 @@ PAM options that can be applied to configuration files in /etc/pam.d are as foll
 .TP
 .B
 \fIuser=[user patterns]\fP
-Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to 'user=\\*'. A '!' character at the start of the pattern allows inversion, so to match all users but root use: 'user=!root'
+Comma separated list of fnmatch (shell-style) patterns that identify users for whom this rule applies. To match all users either leave this out, leave it blank, or explicitly set it to "user\=*".  A \(aq!\(aq character at the start of the pattern allows inversion, so to match all users but root use: "user=!root"
 .TP
 .B
 \fIconf-file=[path]\fP
@@ -42,7 +42,7 @@ Record events via syslog messages
 .TP
 .B
 \fIscript=[path]\fP
-Run script when a connection is either denied or allowed. Arguments passed to the script will be 'ALLOW/DENY' 'User', 'IP', 'Mac Address', 'Device' and 'Region'. 'Region' will be in the format '<registrar>:<countrycode>' so for example, 'ripencc:GB'.
+Run script when a connection is either denied or allowed. Arguments passed to the script will be "ALLOW/DENY" "User", "IP", "Mac Address", "Device" and "Region". "Region" will be in the format "<registrar>:<countrycode>" so for example, "ripencc:GB".
 
 .TP
 .B
@@ -62,12 +62,12 @@ A comma-separated list of fnmatch patterns that match network device names that 
 .TP
 .B
 \fIallow-region=[region]\fP
-A comma-separated list of fnmatch patterns that match region strings looked up in IP registrar files. Region strings are in the format '<registrar>:<countrycode>. This option requires you to supply the paths to the region files with the 'region-files' option. For more details see 'REGIONS' below.
+A comma-separated list of fnmatch patterns that match region strings looked up in IP registrar files. Region strings are in the format "<registrar>:<countrycode>. This option requires you to supply the paths to the region files with the "region-files" option. For more details see "REGIONS" below.
 
 .TP
 .B
 \fIregion-files=[paths]\fP
-A comma-separated list of paths to files containing IP registrar assignments. For more details see 'REGIONS' below.
+A comma-separated list of paths to files containing IP registrar assignments. For more details see "REGIONS" below.
 
 .TP
 .B
@@ -82,29 +82,33 @@ A comma-separated list of paths to files containing IP addresses, MAC addresses 
 .TP
 .B
 \fIdnsblacklist=[domains]\fP
-A comma-separated list of domains to use in dns-blacklist lookups. So, for instance \'dnsblacklist=zen.spamhaus.org,bots.abuse.net\' would check if the host was present in zen.spamhaus.org or bots.abuse.net dns blacklists. Items for which a matching entry is returned are DENIED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+A comma-separated list of domains to use in dns-blacklist lookups. So, for instance "dnsblacklist=zen.spamhaus.org,bots.abuse.net" would check if the host was present in zen.spamhaus.org or bots.abuse.net dns blacklists. Items for which a matching entry is returned are DENIED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
 
 .TP
 .B
 \fIdnswhitelist=[domains]\fP
-A comma-separated list of domains to use in dns-whitelist lookups. So, for instance \'dnswhitelist=whitelist.spamhaus.org,mylist.local\' would check if the host was present in whitelist.spamhaus.org or mylist.local. Items for which a matching entry is returned are ALLOWED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+A comma-separated list of domains to use in dns-whitelist lookups. So, for instance "dnswhitelist=whitelist.spamhaus.org,mylist.local" would check if the host was present in whitelist.spamhaus.org or mylist.local. Items for which a matching entry is returned are ALLOWED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
 
 
 .SH REGION FILES
 
 .P
 Region information is looked up in files provided by the Regional Internet Registries. These files are downloadable at the following addresses:
-.P
+.IP
 http://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-latest      # Latin America
+.IP
 http://ftp.ripe.net/ripe/stats/delegated-ripencc-latest             # Europe, Russia, Middle East
+.IP
 http://ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest   # North America
+.IP
 http://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-latest   # Africa
+.IP
 http://ftp.apnic.net/stats/apnic/delegated-apnic-latest             # Asia Pacific
 
 .SH BLACKLISTS/WHITELISTS
 
 .P
-Blacklist/whitelist files contain IP addresses, hostnames, or MAC addresses that are either denied or allowed login. One item per line. All three types of item can be present in the same file. Blacklist files are checked first, and then can be overridden with whitelist files. As pam_ihosts denies login by default, so a whitelist file can be used on its own. To use only a blacklist file, one would have to specify 'allow-ip=*' and then specify a blacklist file, which would have the effect of allowing everything except those things in the blacklist file.
+Blacklist/whitelist files contain IP addresses, hostnames, or MAC addresses that are either denied or allowed login. One item per line. All three types of item can be present in the same file. Blacklist files are checked first, and then can be overridden with whitelist files. As pam_ihosts denies login by default, so a whitelist file can be used on its own. To use only a blacklist file, one would have to specify "allow-ip\=*" and then specify a blacklist file, which would have the effect of allowing everything except those things in the blacklist file.
 
 .SH EXAMPLES
 
@@ -122,7 +126,7 @@ For all users allow login only from two mac-addresses
 
 .nf
 
-account    required  pam_ihosts.so user=* allow\-mac=ff:c0:a8:e4:99:31,ff:c0:a8:f9:cc:01
+account    required  pam_ihosts.so user\=* allow\-mac=ff:c0:a8:e4:99:31,ff:c0:a8:f9:cc:01
 .fi
 .ad b
 
@@ -140,7 +144,7 @@ For all users, allow login only from Asia Pacific IPs.
 
 .nf
 
-account    required  pam_ihosts.so user=* region\-files=/etc/ip\-lists/delegated\-afrinic\-latest,/etc/ip\-lists/delegated\-lacnic\-latest,/etc/ip\-lists/delegated\-apnic\-latest,/etc/ip\-lists/delegated\-ripencc\-latest allow\-region=apnic:*
+account    required  pam_ihosts.so user\=* region\-files=/etc/ip\-lists/delegated\-afrinic\-latest,/etc/ip\-lists/delegated\-lacnic\-latest,/etc/ip\-lists/delegated\-apnic\-latest,/etc/ip\-lists/delegated\-ripencc\-latest allow\-region=apnic:*
 .fi
 .ad b
 
@@ -149,7 +153,7 @@ Same as above, but perhaps more efficient, only look up regions in the apnic fil
 
 .nf
 
-account    required  pam_ihosts.so user=* region\-files=/etc/ip\-lists/delegated\-apnic\-latest allow\-region=apnic:*
+account    required  pam_ihosts.so user\=* region\-files=/etc/ip\-lists/delegated\-apnic\-latest allow\-region=apnic:*
 .fi
 .ad b
 

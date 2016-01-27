@@ -66,18 +66,28 @@ A comma-separated list of fnmatch patterns that match region strings looked up i
 
 .TP
 .B
-\fIregion-files=[path]\fP
+\fIregion-files=[paths]\fP
 A comma-separated list of paths to files containing IP registrar assignments. For more details see 'REGIONS' below.
 
 .TP
 .B
-\fIblacklist=[path]\fP
-A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBblacklisted\fP (denied login). One item per line.
+\fIblacklist=[paths]\fP
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBblacklisted\fP (denied login). The files must contain one item (ip address) per line.
 
 .TP
 .B
-\fIwhitelist=[path]\fP
-A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBwhitelisted\fP (allowed login). One item per line.
+\fIwhitelist=[paths]\fP
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBwhitelisted\fP (allowed login). The files must contain one item (ip address) per line.
+
+.TP
+.B
+\fIdnsblacklist=[domains]\fP
+A comma-separated list of domains to use in dns-blacklist lookups. So, for instance \'dnsblacklist=zen.spamhaus.org,bots.abuse.net\' would check if the host was present in zen.spamhaus.org or bots.abuse.net dns blacklists. Items for which a matching entry is returned are DENIED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+
+.TP
+.B
+\fIdnswhitelist=[domains]\fP
+A comma-separated list of domains to use in dns-whitelist lookups. So, for instance \'dnswhitelist=whitelist.spamhaus.org,mylist.local\' would check if the host was present in whitelist.spamhaus.org or mylist.local. Items for which a matching entry is returned are ALLOWED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
 
 
 .SH REGION FILES

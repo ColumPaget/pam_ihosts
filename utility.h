@@ -29,6 +29,7 @@ unsigned long StrtoIP(const char *Str);
 int IsIP4Address(const char *Str);
 char *LookupHostIP(const char *Host);
 int CheckIPLists(const char *Path, const char *Rhost, const char *IP, const char *MAC, const char *Region, char **MatchingList);
+int CheckDNSList(const char *Domain, const char *IP, char **MatchingList);
 void Destroy(void *Item);
 
 #endif

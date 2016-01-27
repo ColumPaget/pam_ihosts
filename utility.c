@@ -384,7 +384,7 @@ return(result);
 
 
 
-int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region, char **MatchingList)
+int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region, char **MatchingLists)
 {
 char *Path=NULL, *ptr;
 int result=FALSE;
@@ -397,13 +397,60 @@ StripTrailingWhitespace(Path);
 result=CheckIPFile(Path,Rhost,IP,MAC,Region);
 if (result) 
 {
-	*MatchingList=CopyStr(*MatchingList, Path);
+	*MatchingLists=MCatStr(*MatchingLists, Path, " ", NULL);
 	break;
 }
 ptr=GetTok(ptr,",",&Path);
 }
 
 Destroy(Path);
+return(result);
+}
+
+
+int CheckDNSList(const char *Domains, const char *IP, char **MatchingLists)
+{
+char *Tempstr=NULL, *Reversed=NULL, *Token=NULL, *ptr;
+struct hostent *hinfo;
+char *Quads[4];
+int i=0, len, result=FALSE;
+
+ptr=GetTok(IP,".",&Token);
+while (ptr && (i < 4))
+{
+  Quads[i]=CopyStr(NULL, Token);
+  i++;
+  ptr=GetTok(ptr,".",&Token);
+}
+
+
+if (i == 4)
+{
+	for (i=3; i > -1; i--)
+	{
+	Reversed=MCatStr(Reversed,Quads[i],".",NULL);
+	}
+	
+	ptr=GetTok(Domains,",",&Token);
+	while (ptr)
+	{
+		Tempstr=MCopyStr(Tempstr,Reversed,Token,NULL);
+		hinfo=gethostbyname(Tempstr);
+		if (hinfo)
+		{
+			result=TRUE;
+			//syslog(LOG_INFO, "pam_ihosts: host [%s] in dns blacklist [%s] response=[%s]",IP,Domain,IPtoStr(* (uint32_t *) hinfo->h_addr_list[0]));
+			syslog(LOG_INFO, "pam_ihosts: host [%s] in dns list [%s]",IP,Token);
+			*MatchingLists=MCatStr(*MatchingLists, Token, " ", NULL);
+		}
+	ptr=GetTok(ptr,",",&Token);
+	}
+}
+
+Destroy(Reversed);
+Destroy(Tempstr);
+Destroy(Token);
+
 return(result);
 }
 

@@ -37,6 +37,8 @@ char *AllowedRegions;
 char *AllowedDevices;
 char *BlackLists;
 char *WhiteLists;
+char *DNSBlackLists;
+char *DNSWhiteLists;
 char *RegionFiles;
 char *Script;
 } TSettings;
@@ -237,6 +239,8 @@ const char *ptr;
 		else if (strncmp(ptr,"region-files=",13)==0) Settings->RegionFiles=MCatStr(Settings->RegionFiles, ptr+13,",",NULL);
 		else if (strncmp(ptr,"blacklist=",10)==0) Settings->BlackLists=MCatStr(Settings->BlackLists, ptr+10,",",NULL);
 		else if (strncmp(ptr,"whitelist=",10)==0) Settings->WhiteLists=MCatStr(Settings->WhiteLists, ptr+10,",",NULL);
+		else if (strncmp(ptr,"dnswhitelist=",13)==0) Settings->DNSWhiteLists=MCatStr(Settings->DNSWhiteLists, ptr+13,",",NULL);
+		else if (strncmp(ptr,"dnsblacklist=",13)==0) Settings->DNSBlackLists=MCatStr(Settings->DNSBlackLists, ptr+13,",",NULL);
 		else if (strncmp(ptr,"script=",7)==0) Settings->Script=MCopyStr(Settings->Script, ptr+7, NULL);
 }
 
@@ -359,6 +363,8 @@ int PamResult=PAM_PERM_DENIED;
 	if (StrLen(Settings->WhiteLists) && CheckIPLists(Settings->WhiteLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_IGNORE;
 	if (StrLen(Settings->BlackLists) && CheckIPLists(Settings->BlackLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_PERM_DENIED;
 
+	if (CheckDNSList(Settings->DNSWhiteLists, IP, Lists)) PamResult=PAM_IGNORE;
+	if (CheckDNSList(Settings->DNSBlackLists, IP, Lists)) PamResult=PAM_PERM_DENIED;
 	return(PamResult);
 }
 
@@ -387,7 +393,7 @@ int PamResult=PAM_PERM_DENIED;
   Region=CopyStr(Region,"");
   IP=CopyStr(IP,"");
 
-	syslog(LOG_NOTICE, "pam_ihosts user=[%s] rhost=[%s]",pam_user, pam_rhost);
+	syslog(LOG_NOTICE, "pam_ihosts: user=[%s] rhost=[%s]",pam_user, pam_rhost);
 	if (! StrLen(pam_rhost)) return(PAM_PERM_DENIED);
 	if (! IsIPAddress(pam_rhost)) IP=CopyStr(IP, LookupHostIP(pam_rhost));
 	else IP=CopyStr(IP, pam_rhost);

@@ -70,6 +70,18 @@ A comma-separated list of fnmatch patterns that match region strings looked up i
 **region-files=[path]**  
 A comma-separated list of paths to files containing IP registrar assignments. For more details see 'REGIONS' below.
 
+**blacklist=[paths]**
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBblacklisted\fP (denied login). The files must contain one item (ip address) per line. Each path can be prefixed with "mmap:" in which case the program will use a shared mmap of the file (see MMAPPED FILES below).
+
+**whitelist=[paths]**
+A comma-separated list of paths to files containing IP addresses, MAC addresses or hostnames that are \fBwhitelisted\fP (allowed login). The files must contain one item (ip address) per line. Each path can be prefixed with "mmap:" in which case the program will use a shared mmap of the file (see MMAPPED FILES below).
+
+**dnsblacklist=[domains]**
+A comma-separated list of domains to use in dns-blacklist lookups. So, for instance "dnsblacklist=zen.spamhaus.org,bots.abuse.net" would check if the host was present in zen.spamhaus.org or bots.abuse.net dns blacklists. Items for which a matching entry is returned are DENIED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+
+**dnswhitelist=[domains]**
+A comma-separated list of domains to use in dns-whitelist lookups. So, for instance "dnswhitelist=whitelist.spamhaus.org,mylist.local" would check if the host was present in whitelist.spamhaus.org or mylist.local. Items for which a matching entry is returned are ALLOWED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+
 
 # MAC address and device matches
 
@@ -90,6 +102,16 @@ http://ftp.apnic.net/stats/apnic/delegated-apnic-latest             # Asia Pacif
 These files contain information about ip-address assignments against country-code. pam_ihosts looks an ip-address up in them, and extracts a string in the form `<registrar>:<countrycode>`, against which it matches the 'allow-region' option. 
 
 A special case are 'private' IP addresses (e.g. 10.x.x.x, 192.168.x.x). These will return the string 'local'.
+
+
+# BLACKLISTS/WHITELISTS
+
+Blacklist/whitelist files contain IP addresses, hostnames, or MAC addresses that are either denied or allowed login. One item per line. All three types of item can be present in the same file. Blacklist files are checked first, and then can be overridden with whitelist files. As pam_ihosts denies login by default, so a whitelist file can be used on its own. To use only a blacklist file, one would have to specify "allow-ip=\*" and then specify a blacklist file, which would have the effect of allowing everything except those things in the blacklist file.
+
+# MMAPPED FILES
+
+Blacklist, whitelist and region file paths can be prefixed with "mmap:" In this case pam_ihosts uses a shared memory mapping of the file. Provided that some other program currently has the file mapped, pam_ihosts will not have to load the file from disk, as it will already be available as shared memory. This can significantly improve performance for large files, at the cost of some memory. If no other program has the file mmapped, then pam_ihosts loads it into shared memory, but has to pay the performance cost of loading it from disk. Therefore, for this system to deliver a benefit, some long-lived program has to keep the files mapped.
+
 
 # EXAMPLES
 

@@ -128,8 +128,11 @@ int result=FALSE;
 uint32_t IP, Mask, val;
 
 IP=StrtoIP(IPStr);
+
+
+
 Tempstr=realloc(Tempstr, 256);
-F=fopen(Path, "r");
+F=OpenFileOrMMap(Path);
 if (F)
 {
 	while (fgets(Tempstr,255,F))
@@ -165,6 +168,9 @@ if (F)
 		}
 		}
 	}
+
+printf("FCLOSE %d\n",F);
+
 	fclose(F);
 }
 else

@@ -15,6 +15,10 @@
 int ItemMatches(const char *Item, const char *MatchList);
 int ItemListMatches(const char *ItemList, const char *MatchList);
 
+//either opens a file or, if the system supports it and the file has
+//an mmap: prefix, opens a shared mem-map
+FILE *OpenFileOrMMap(const char *Path);
+
 void strlwr(char *Str);
 char *VCatStr(char *Dest, const char *Str1,  va_list args);
 char *MCatStr(char *Dest, const char *Str1,  ...);

@@ -6,6 +6,9 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 
 void strlwr(char *Str)
@@ -343,6 +346,41 @@ return((char *) inet_ntoa(*(struct in_addr *) *hostdata->h_addr_list));
 }
 
 
+
+
+//either opens a file or, if the system supports it and the file has
+//an mmap: prefix, opens a shared mem-map
+FILE *OpenFileOrMMap(const char *Path)
+{
+char *ptr, *map=NULL;
+int fd;
+struct stat Stat;
+FILE *f=NULL;
+
+if (! StrLen(Path)) return(NULL);
+
+ptr=Path;
+if (strncmp(ptr,"mmap:",5)==0)
+{
+  ptr+=5;
+  fd=open(ptr, O_RDONLY);
+  if (fd > -1)
+  {
+  fstat(fd,&Stat);
+  map=mmap(NULL,Stat.st_size,PROT_READ,MAP_SHARED,fd,0);
+  if (map) f=fmemopen(map, Stat.st_size, "r");
+  close(fd);
+  }
+}
+
+if (! f) f=fopen(ptr, "r");
+
+return(f);
+}
+
+
+
+
 int CheckIPFile(const char *Path, const char *Rhost, const char *IP, const char *MAC, const char *Region)
 {
 FILE *f;
@@ -350,7 +388,7 @@ char *Line=NULL;
 int result=FALSE;
 
 Line=(char *) calloc(1,256);
-f=fopen(Path,"r");
+f=OpenFileOrMMap(Path);
 if (f)
 {
 	while (fgets(Line,255,f))

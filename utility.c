@@ -352,7 +352,8 @@ return((char *) inet_ntoa(*(struct in_addr *) *hostdata->h_addr_list));
 //an mmap: prefix, opens a shared mem-map
 FILE *OpenFileOrMMap(const char *Path)
 {
-char *ptr, *map=NULL;
+char *map=NULL;
+const char *ptr;
 int fd;
 struct stat Stat;
 FILE *f=NULL;
@@ -424,7 +425,8 @@ return(result);
 
 int CheckIPLists(const char *FileList, const char *Rhost, const char *IP, const char *MAC, const char *Region, char **MatchingLists)
 {
-char *Path=NULL, *ptr;
+char *Path=NULL;
+const char *ptr;
 int result=FALSE;
 
 ptr=GetTok(FileList,",",&Path);
@@ -448,7 +450,8 @@ return(result);
 
 int CheckDNSList(const char *Domains, const char *IP, char **MatchingLists)
 {
-char *Tempstr=NULL, *Reversed=NULL, *Token=NULL, *ptr;
+char *Tempstr=NULL, *Reversed=NULL, *Token=NULL;
+const char *ptr;
 struct hostent *hinfo;
 char *Quads[4];
 int i=0, len, result=FALSE;

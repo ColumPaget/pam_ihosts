@@ -169,8 +169,6 @@ if (F)
 		}
 	}
 
-printf("FCLOSE %d\n",F);
-
 	fclose(F);
 }
 else

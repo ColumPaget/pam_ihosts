@@ -386,9 +386,9 @@ Destroy(Tempstr);
 
 
 
-int ConsiderHost(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost)
+int ConsiderHost(TSettings *Settings, pam_handle_t *pamh, const char *pam_service, const char *pam_user, const char *pam_rhost)
 {
-char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL, *Lists=NULL;
+char *MAC=NULL, *Device=NULL, *Region=NULL, *IP=NULL, *Lists=NULL, *Tempstr=NULL;
 int PamResult=PAM_PERM_DENIED;
 
 	Lists=CopyStr(Lists,"");
@@ -415,9 +415,13 @@ int PamResult=PAM_PERM_DENIED;
 			closelog();
 	}
 
+	Tempstr=MCopyStr(Tempstr,"IHOSTS_REGION=",Region,NULL);
+	pam_putenv(pamh, Tempstr);
+
 	if (PamResult==PAM_PERM_DENIED) RunScript(Settings, "DENY", Region, Device, pam_user, pam_rhost, MAC);
 	else RunScript(Settings, "ALLOW", Region, Device, pam_user, pam_rhost, MAC);
 
+	Destroy(Tempstr);
 	Destroy(Region);
 	Destroy(Device);
 	Destroy(Lists);
@@ -473,7 +477,7 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
 	}
 	
 	Settings=ParseSettings(argc, argv, pam_service);
-	PamResult=ConsiderHost(Settings, pam_service, pam_user, pam_rhost);
+	PamResult=ConsiderHost(Settings, pamh, pam_service, pam_user, pam_rhost);
 
 	Destroy(Settings);
 	Destroy(Tempstr);

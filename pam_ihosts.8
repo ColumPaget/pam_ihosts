@@ -16,7 +16,7 @@ pam_ihosts.so [user=<username>] [syslog] [allow\-device=<device>] [allow\-mac=<m
 .P
 pam_ihosts considers a user\(aqs remote ip to prevent/allow login by users who have already provided the correct credentials. 
 .P
-pam_ihosts.so can use the "stats" files that regional internet registrars provide in order to look up the registrar and country that an IP is registered to, allowing a form of crude geo-location.
+pam_ihosts.so can use the "stats" files that regional internet registrars provide in order to look up the registrar and country that an IP is registered to, allowing a form of crude geo-location. Region information is stored in the environment variable "IHOSTS_REGION" for use by programs after login.
 .P
 \fbBeware\fP. pam_ihosts.so denies login by default for any user that it\(aqs specified to handle. Options must be supplied to indicate the mac-address, ip-address, country-code or region of hosts that are allowed to log in.
 

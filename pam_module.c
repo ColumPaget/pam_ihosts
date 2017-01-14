@@ -417,6 +417,12 @@ int PamResult=PAM_PERM_DENIED;
 
 	Tempstr=MCopyStr(Tempstr,"IHOSTS_REGION=",Region,NULL);
 	pam_putenv(pamh, Tempstr);
+	Tempstr=MCopyStr(Tempstr,"IHOSTS_ADDRESS=",IP,NULL);
+	pam_putenv(pamh, Tempstr);
+	Tempstr=MCopyStr(Tempstr,"IHOSTS_MAC=",MAC,NULL);
+	pam_putenv(pamh, Tempstr);
+
+
 
 	if (PamResult==PAM_PERM_DENIED) RunScript(Settings, "DENY", Region, Device, pam_user, pam_rhost, MAC);
 	else RunScript(Settings, "ALLOW", Region, Device, pam_user, pam_rhost, MAC);

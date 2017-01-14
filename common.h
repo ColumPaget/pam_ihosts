@@ -1,6 +1,6 @@
 
-#ifndef USBAUTH_COMMON_H
-#define USBAUTH_COMMON_H
+#ifndef PAMIHOSTS_COMMON_H
+#define PAMIHOSTS_COMMON_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <syslog.h>
 
-#define VERSION "1.5.3"
+#define VERSION "1.5.4"
 #define FALSE 0
 #define TRUE 1
 

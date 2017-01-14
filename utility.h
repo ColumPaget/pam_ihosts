@@ -2,8 +2,8 @@
 //if you are looking for PAM module example code, then look in pam_module.c
 
 
-#ifndef USBKEY_UTIL_H
-#define USBKEY_UTIL_H
+#ifndef PAMIHOSTS_UTIL_H
+#define PAMIHOSTS_UTIL_H
 
 #include "common.h"
 

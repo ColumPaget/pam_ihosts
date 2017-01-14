@@ -113,6 +113,11 @@ Blacklist/whitelist files contain IP addresses, hostnames, or MAC addresses that
 Blacklist, whitelist and region file paths can be prefixed with "mmap:" In this case pam_ihosts uses a shared memory mapping of the file. Provided that some other program currently has the file mapped, pam_ihosts will not have to load the file from disk, as it will already be available as shared memory. This can significantly improve performance for large files, at the cost of some memory. If no other program has the file mmapped, then pam_ihosts loads it into shared memory, but has to pay the performance cost of loading it from disk. Therefore, for this system to deliver a benefit, some long-lived program has to keep the files mapped.
 
 
+# ENVIRONMENT VARIABLES
+
+On login pam_ihosts stores the source IP address in IHOSTS_ADDRESS, the source MAC address in IHOSTS_MAC and the source registrar/region in IHOSTS_REGION.
+
+
 # EXAMPLES
 
 Allow root login only from 192.168.0.x

@@ -11,12 +11,12 @@ mandir=@mandir@
 datarootdir=@datarootdir@
 sysconfdir=@sysconfdir@
 FLAGS=$(CFLAGS) @DEFS@
+OBJ=utility.o
 
 all: pam_ihosts.so
 
 pam_ihosts.so: common.h utility.o pam_module.c 
-	gcc $(FLAGS) -c pam_module.c
-	ld -x --shared -lpam -opam_ihosts.so pam_module.o utility.o
+	gcc $(FLAGS) -opam_ihosts.so -shared -lpam pam_module.c $(OBJ)
 	strip pam_ihosts.so
 
 utility.o: utility.h utility.c

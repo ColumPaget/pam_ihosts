@@ -223,10 +223,15 @@ return(RetStr);
 void ParseSettingLine(TSettings *Settings, const char *Line)
 {
 const char *ptr;
+char *Config=NULL;
 
 		if (! StrLen(Line)) return;
 		ptr=Line;
 
+		//anything after a '#' is comment
+		GetTok(Line, "#", &Config);
+		StripTrailingWhitespace(Config);
+		ptr=Config;
 
 		if (strcmp(ptr,"syslog")==0) Settings->Flags |= FLAG_SYSLOG;
 		else if (strncmp(ptr,"user=",5)==0) Settings->User=CopyStr(Settings->User, ptr+5);
@@ -246,6 +251,8 @@ const char *ptr;
 		else if (strncmp(ptr,"dnswhitelist=",13)==0) Settings->DNSWhiteLists=MCatStr(Settings->DNSWhiteLists, ptr+13,",",NULL);
 		else if (strncmp(ptr,"dnsblacklist=",13)==0) Settings->DNSBlackLists=MCatStr(Settings->DNSBlackLists, ptr+13,",",NULL);
 		else if (strncmp(ptr,"script=",7)==0) Settings->Script=MCopyStr(Settings->Script, ptr+7, NULL);
+
+	Destroy(Config);
 }
 
 

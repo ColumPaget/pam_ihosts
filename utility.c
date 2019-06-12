@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <netinet/in.h>
 
 void strlwr(char *Str)
 {

@@ -16,11 +16,11 @@ OBJ=utility.o
 all: pam_ihosts.so
 
 pam_ihosts.so: common.h utility.o pam_module.c 
-	gcc $(FLAGS) -opam_ihosts.so -shared -lpam pam_module.c $(OBJ)
+	$(CC) $(FLAGS) -opam_ihosts.so -shared -lpam pam_module.c $(OBJ)
 	strip pam_ihosts.so
 
 utility.o: utility.h utility.c
-	gcc $(FLAGS) -c utility.c
+	$(CC) $(FLAGS) -c utility.c
 
 install: pam_ihosts.so
 	$(INSTALL) -d $(DESTDIR)$(bindir)

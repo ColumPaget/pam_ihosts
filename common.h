@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <syslog.h>
 
-#define VERSION "1.5.6"
+#define VERSION "1.5.7"
 #define FALSE 0
 #define TRUE 1
 

@@ -1,5 +1,4 @@
 CC=@CC@
-VERSION=@VERSION@
 CFLAGS=@CFLAGS@ -fPIC -fno-stack-protector 
 LIBS=@LIBS@
 INSTALL=@INSTALL@

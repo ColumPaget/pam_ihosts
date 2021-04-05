@@ -2,6 +2,8 @@
 #include "utility.h"
 #include <syslog.h>
 #include <inttypes.h>
+#include <fnmatch.h>
+#include <arpa/inet.h>
 
 //Define which PAM interfaces we provide. In this case we are
 //only going to provide an account interface, i.e. one 
@@ -33,6 +35,8 @@ int Flags;
 char *User;
 char *AllowedMACs;
 char *AllowedIPs;
+char *AllowedHosts;
+char *AllowedDynDNS;
 char *AllowedRegions;
 char *AllowedDevices;
 char *BlackLists;
@@ -52,10 +56,14 @@ if (! Settings) return;
 Destroy(Settings->User);
 Destroy(Settings->AllowedMACs);
 Destroy(Settings->AllowedIPs);
+Destroy(Settings->AllowedHosts);
+Destroy(Settings->AllowedDynDNS);
 Destroy(Settings->AllowedRegions);
 Destroy(Settings->AllowedDevices);
 Destroy(Settings->BlackLists);
 Destroy(Settings->WhiteLists);
+Destroy(Settings->DNSBlackLists);
+Destroy(Settings->DNSWhiteLists);
 Destroy(Settings->RegionFiles);
 Destroy(Settings->Script);
 free(Settings);
@@ -198,8 +206,8 @@ const char *ptr;
 if (strncmp(IP,"127.",4)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"192.168.",8)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"10.",3)==0) return(CopyStr(RetStr,"local"));
-if (fnmatch(IP,"172.1[6-9].*")==0) return(CopyStr(RetStr,"local"));
-if (fnmatch(IP,"172.2?.*")==0) return(CopyStr(RetStr,"local"));
+if (fnmatch(IP,"172.1[6-9].*",0)==0) return(CopyStr(RetStr,"local"));
+if (fnmatch(IP,"172.2?.*",0)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"172.30.",7)==0) return(CopyStr(RetStr,"local"));
 if (strncmp(IP,"172.31.",7)==0) return(CopyStr(RetStr,"local"));
 
@@ -239,11 +247,14 @@ char *Config=NULL;
 		else if (strncmp(ptr,"allow-device=",13)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+13,",",NULL);
 		else if (strncmp(ptr,"allow-mac=",10)==0) Settings->AllowedMACs=MCatStr(Settings->AllowedMACs, ptr+10,",",NULL);
 		else if (strncmp(ptr,"allow-ip=",9)==0) Settings->AllowedIPs=MCatStr(Settings->AllowedIPs, ptr+9,",",NULL);
-		else if (strncmp(ptr,"allow-region=",13)==0) Settings->AllowedRegions=MCatStr(Settings->AllowedRegions, ptr+13,",",NULL);
+		else if (strncmp(ptr,"allow-ips=",10)==0) Settings->AllowedIPs=MCatStr(Settings->AllowedIPs, ptr+10,",",NULL);
+		else if (strncmp(ptr,"allow-host=",11)==0) Settings->AllowedHosts=MCatStr(Settings->AllowedHosts, ptr+11,",",NULL);
+		else if (strncmp(ptr,"allow-hosts=",12)==0) Settings->AllowedHosts=MCatStr(Settings->AllowedHosts, ptr+12,",",NULL);
+		else if (strncmp(ptr,"allow-dyndns=",13)==0) Settings->AllowedDynDNS=MCatStr(Settings->AllowedDynDNS, ptr+13,",",NULL);
 		else if (strncmp(ptr,"allow-devs=",10)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+11,",",NULL);
 		else if (strncmp(ptr,"allow-devices=",13)==0) Settings->AllowedDevices=MCatStr(Settings->AllowedDevices, ptr+14,",",NULL);
 		else if (strncmp(ptr,"allow-macs=",11)==0) Settings->AllowedMACs=MCatStr(Settings->AllowedMACs, ptr+11,",",NULL);
-		else if (strncmp(ptr,"allow-ips=",10)==0) Settings->AllowedIPs=MCatStr(Settings->AllowedIPs, ptr+10,",",NULL);
+		else if (strncmp(ptr,"allow-region=",13)==0) Settings->AllowedRegions=MCatStr(Settings->AllowedRegions, ptr+13,",",NULL);
 		else if (strncmp(ptr,"allow-regions=",14)==0) Settings->AllowedRegions=MCatStr(Settings->AllowedRegions, ptr+14,",",NULL);
 		else if (strncmp(ptr,"region-files=",13)==0) Settings->RegionFiles=MCatStr(Settings->RegionFiles, ptr+13,",",NULL);
 		else if (strncmp(ptr,"blacklist=",10)==0) Settings->BlackLists=MCatStr(Settings->BlackLists, ptr+10,",",NULL);
@@ -359,6 +370,61 @@ return(result);
 }
 
 
+
+int HostMatches(const char *IP, const char *MatchList)
+{
+const char *ptr;
+char *Match=NULL, *Host=NULL;
+int result=FALSE;
+
+if (StrLen(MatchList) ==0) return(FALSE);
+
+Host=CopyStr(Host, LookupIPHost(IP));
+ptr=GetTok(MatchList, ",", &Match);
+while (ptr)
+{
+	if (strcasecmp(Host, Match)==0) 
+	{
+		result=TRUE;
+		break;
+	}
+  ptr=GetTok(ptr, ",", &Match);
+}
+
+Destroy(Match);
+Destroy(Host);
+
+return(result);
+}
+
+
+int DynDNSMatches(const char *IP, const char *MatchList)
+{
+const char *ptr;
+char *Match=NULL, *DynIP=NULL;
+int result=FALSE;
+
+if (StrLen(MatchList) ==0) return(FALSE);
+ptr=GetTok(MatchList, ",", &Match);
+while (ptr)
+{
+	DynIP=CopyStr(DynIP, LookupHostIP(Match));
+	if (strcasecmp(DynIP, IP)==0) 
+	{
+		result=TRUE;
+		break;
+	}
+  ptr=GetTok(ptr, ",", &Match);
+}
+
+Destroy(Match);
+Destroy(DynIP);
+
+return(result);
+}
+
+
+
 int CheckHostPermissions(TSettings *Settings, const char *pam_service, const char *pam_user, const char *pam_rhost, const char *IP, const char *Device, const char *MAC, const char *Region, char **Lists)
 {
 int PamResult=PAM_PERM_DENIED;
@@ -370,12 +436,22 @@ int PamResult=PAM_PERM_DENIED;
 	if (StrLen(Settings->AllowedIPs) && ItemMatches(IP, Settings->AllowedIPs)) PamResult=PAM_IGNORE;
 	else if (StrLen(Settings->AllowedMACs) && ItemMatches(MAC, Settings->AllowedMACs)) PamResult=PAM_IGNORE;
 	else if (StrLen(Region) && StrLen(Settings->AllowedRegions) && ItemMatches(Region, Settings->AllowedRegions)) PamResult=PAM_IGNORE;
+	else if (StrLen(Settings->AllowedHosts)) 
+	{
+		if (HostMatches(IP, Settings->AllowedHosts)) PamResult=PAM_IGNORE;
+	}
+	else if (StrLen(Settings->AllowedDynDNS)) 
+	{
+		if (DynDNSMatches(IP, Settings->AllowedDynDNS)) PamResult=PAM_IGNORE;
+	}
 
 	if (StrLen(Settings->WhiteLists) && CheckIPLists(Settings->WhiteLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_IGNORE;
 	if (StrLen(Settings->BlackLists) && CheckIPLists(Settings->BlackLists, pam_rhost, IP, MAC, Region, Lists)) PamResult=PAM_PERM_DENIED;
 
 	if (CheckDNSList(Settings->DNSWhiteLists, IP, Lists)) PamResult=PAM_IGNORE;
 	if (CheckDNSList(Settings->DNSBlackLists, IP, Lists)) PamResult=PAM_PERM_DENIED;
+
+
 	return(PamResult);
 }
 

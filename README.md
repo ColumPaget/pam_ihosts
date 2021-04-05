@@ -53,6 +53,15 @@ Run script in the event of a DENY. Arguments passed to the script will be 'User'
 **allow-ips=[ip]**  
 A comma-separated list of fnmatch patterns that match IP addresses allowed to log in.
 
+**allow-host=[host]**  
+**allow-hosts=[hosts]**  
+A comma-separated list of patterns that match hostnames (looked up from the ip-address) that are allowed to log in.
+
+**allow-dyndns=[host]**  
+**allow-dyndns=[hosts]**  
+A comma-separated list of hostnames (not patterns) that are allowed to log in (see 'DYNDNS' below).
+
+
 **allow-mac=[mac]**  
 **allow-macs=[mac]**  
 A comma-separated list of fnmatch patterns that match MAC addresses allowed to log in.
@@ -86,6 +95,12 @@ A comma-separated list of domains to use in dns-whitelist lookups. So, for insta
 # MAC address and device matches
 
 pam_ihosts.so looks up MAC addresses and devices in the /proc/net/arps file. If an IP does not have an entry in this file, then both MAC address and Device will be set to 'remote', as the connecting host is not on the same subnet as the target host.
+
+
+#DYNDNS
+
+Hostnames used in the "allow-host" rule-type are looked up from the IP address that the attempted login is coming from. However, for the "allow-dyndns" rule-type the lookups go in the other direction. Each hostname listed in the rule is looked up, and checked if it has the same IP address as the address that's logging in. This is to allow the use of dynamic DNS services that allow hosts that change their IP address (either because the host is mobile, or because their IP is handed out by their ISP and frequently changes) against a hostname. Normally these hosts will have a 'real' hostname that is controlled by the ISP, and the dynamic DNS name is a secondary name. Thus looking up the hostname for the IP will return the 'real' primary hostname, so the check has to be performed by looking up the IP for the dynamic hostname, and checking if that matches the IP the login is coming from.
+
 
 
 # REGIONS
@@ -143,6 +158,16 @@ account    required  pam_ihosts.so user=* region-files=/etc/ip-lists/delegated-a
 Same as above, but perhaps more efficient, only look up regions in the apnic file.
 ```
 account    required  pam_ihosts.so user=* region-files=/etc/ip-lists/delegated-apnic-latest allow-region=apnic:*
+```
+
+Allow connections from primary hostname of site
+```
+account    required  pam_ihosts.so user=* allow-host=myhost.somewhere.org
+```
+
+Allow connections from a hostname which *may not be the primary hostname*
+```
+account    required  pam_ihosts.so user=* allow-dyndns=myhost.dyndns.org
 ```
 
 

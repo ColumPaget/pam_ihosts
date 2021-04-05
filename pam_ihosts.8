@@ -53,6 +53,16 @@ A comma-separated list of fnmatch patterns that match IP addresses allowed to lo
 
 .TP
 .B
+\fIallow-hosts=[host]\fP
+A comma-separated list of patterns that match hostnames (looked up from the ip-address) that are allowed to log in.
+
+.TP
+.B
+\fIallow-dyndns=[host]\fP
+A comma-separated list of hostnames (not patterns) that are allowed to log in (see 'DYNDNS' below).
+
+.TP
+.B
 \fIallow-mac=[mac]\fP
 A comma-separated list of fnmatch patterns that match MAC addresses allowed to log in.
 
@@ -90,6 +100,12 @@ A comma-separated list of domains to use in dns-blacklist lookups. So, for insta
 .B
 \fIdnswhitelist=[domains]\fP
 A comma-separated list of domains to use in dns-whitelist lookups. So, for instance "dnswhitelist=whitelist.spamhaus.org,mylist.local" would check if the host was present in whitelist.spamhaus.org or mylist.local. Items for which a matching entry is returned are ALLOWED login. DNS lookups are not executed in parallel but one after the other, so unfortunately login can become slow if many lists are queried.
+
+
+.SH DYNDNS
+
+.P
+Hostnames used in the "allow-host" rule-type are looked up from the IP address that the attempted login is coming from. However, for the "allow-dyndns" rule-type the lookups go in the other direction. Each hostname listed in the rule is looked up, and checked if it has the same IP address as the address that\(aqs logging in. This is to allow the use of dynamic DNS services that allow hosts that change their IP address (either because the host is mobile, or because their IP is handed out by their ISP and frequently changes) against a hostname. Normally these hosts will have a "real" hostname that is controlled by the ISP, and the dynamic DNS name is a secondary name. Thus looking up the hostname for the IP will return the "real" primary hostname, so the check has to be performed by looking up the IP for the dynamic hostname, and checking if that matches the IP the login is coming from.
 
 
 .SH REGION FILES

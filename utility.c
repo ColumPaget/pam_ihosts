@@ -346,6 +346,32 @@ return((char *) inet_ntoa(*(struct in_addr *) *hostdata->h_addr_list));
 }
 
 
+char *LookupIPHost(const char *IP)
+{
+struct in_addr IP4Addr;
+struct in6_addr IP6Addr;
+struct hostent *hostdata=NULL;
+int result;
+
+	if (strchr(IP, ':')) 
+	{
+		inet_pton(AF_INET6, IP, &IP6Addr);
+    hostdata=gethostbyaddr(&IP6Addr, sizeof(struct in6_addr), AF_INET6);
+	}
+	else
+	{
+		result=inet_pton(AF_INET, IP, &IP4Addr);
+    hostdata=gethostbyaddr(&IP4Addr, sizeof(struct in_addr), AF_INET);
+	}
+
+  if (!hostdata) return(NULL);
+
+//inet_ntoa shouldn't need this cast to 'char *', but it emitts a warning
+//without it
+return(hostdata->h_name);
+}
+
+
 
 
 //either opens a file or, if the system supports it and the file has
